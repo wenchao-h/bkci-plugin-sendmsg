@@ -4,12 +4,14 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from requests.api import head
+
 from python_atom_sdk.setting import BK_ATOM_STATUS
 
 import python_atom_sdk as sdk
 from .error_code import ErrorCode
 
-import json
+import json, os
 import requests
 
 err_code = ErrorCode()
@@ -199,7 +201,6 @@ def main():
             exit_with_error(error_type=sdk.output_error_type.USER, 
                             error_code=err_code.USER_CONFIG_ERROR,
                             error_msg=resp_json["message"])
-            # sdk.log.error("{}".format(resp_json['message']))
 
     if "mail" in send_by:
         data_tpl["msg_type"] = "mail"
@@ -220,14 +221,42 @@ def main():
             exit_with_error(error_type=sdk.output_error_type.USER, 
                             error_code=err_code.USER_CONFIG_ERROR,
                             error_msg=resp_json["message"])
-            # sdk.log.error("{}".format(resp_json['message']))
-    
     if send_by_robot:
         robot_webhook = sdk.get_sensitive_conf("robot_webhook")
         if robot_webhook is None:
             exit_with_error(error_type=sdk.output_error_type.USER, 
                             error_code=err_code.USER_CONFIG_ERROR,
                             error_msg="robot_webhook does not set")
+        webhook_url = robot_webhook + "?key=" + robot_key
+        sdk.log.info("webhook_url is {}".format(webhook_url))
+
+        artifact = input_params.get("artifact", None)
+        if artifact:
+            sdk.log.info("artifact is {}".format(artifact))
+            file_path = os.path.join(sdk.get_workspace(), artifact)
+            sdk.log.info("file_path is {}".format(file_path))
+            if not os.path.exists(file_path):
+                sdk.log.error("{} does not exist in workspace!".format(artifact))
+            else:
+                media_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media?key={KEY}&type=file".format(KEY=robot_key)
+                files = {'file': (artifact, open(file_path, 'rb'), 'text/plain')}
+                r = requests.post(url=media_url, files=files)
+                r_json = r.json()
+                if r.status_code != 200 or r_json["errcode"] != 0:
+                    sdk.log.error("failed to upload file, {}".format(r_json["errmsg"]))
+                media_id = r_json["media_id"]
+                media_body = {
+                    "msgtype": "file",
+                    "file": {
+                        "media_id": media_id
+                    }
+                }
+                r = requests.post(webhook_url, headers=headers, data=json.dumps(media_body))
+                r_json = r.json()
+                if r.status_code != 200 or r_json["errcode"] != 0:
+                    sdk.log.error("failed to send file, {}".format(r_json["errmsg"]))
+                sdk.log.info("success to send file {}".format(artifact))
+
         body = {
             "msgtype": "text",
             "text": {
@@ -241,8 +270,6 @@ def main():
         body["msgtype"] = msgtype
         body[msgtype]["content"] = robot_content
         sdk.log.info("【robot】 send data is is {}".format(body))
-        webhook_url = robot_webhook + "?key=" + robot_key
-        sdk.log.info("webhook_url is {}".format(webhook_url))
         
         resp = requests.post(url=webhook_url, headers=headers, data=json.dumps(body))
         if resp.status_code != 200:

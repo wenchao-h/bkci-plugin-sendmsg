@@ -1,10 +1,10 @@
 {
     "atomCode": "sendmsg",
     "execution": {
-        "packagePath": "sendmsg-2.0.0.tar.gz",
+        "packagePath": "sendmsg-3.0.0.tar.gz",
         "language": "python",
         "demands": [
-            "pip install sendmsg-2.0.0.tar.gz"
+            "pip install sendmsg-3.0.0.tar.gz"
         ],
         "target": "sendmsg"
     },
@@ -180,6 +180,22 @@
             "placeholder": "消息类型为markdown时，可使用markdown语法",
             "desc":"消息类型为markdown时，可使用markdown语法",
             "required": true,
+            "rely": {
+                "operation": "AND",
+                "expression": [
+                    {
+                        "key": "send_by_robot",
+                        "value": true
+                    }
+                ]
+            }
+        },
+        "artifact": {
+            "label":"发送文件",
+            "default":"",
+            "placeholder":"文件名，如error.log",
+            "type":"vuex-input",
+            "desc":"仅支持发送位于WORKSPACE中的文件，为空默认不发送",
             "rely": {
                 "operation": "AND",
                 "expression": [
