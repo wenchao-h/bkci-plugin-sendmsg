@@ -3,3 +3,6 @@ dist/
 *.zip
 *.egg*
 
+__pycache__/
+*.py[cod]
+*$py.class
