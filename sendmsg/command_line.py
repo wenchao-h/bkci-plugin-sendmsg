@@ -4,15 +4,15 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from requests.api import head
+import json
+import os
+import base64
+import sys
 
-from python_atom_sdk.setting import BK_ATOM_STATUS
+import requests
 
 import python_atom_sdk as sdk
 from .error_code import ErrorCode
-
-import json, os
-import requests
 
 err_code = ErrorCode()
 
@@ -89,23 +89,29 @@ def main():
 
             send_to = input_params.get("send_to", None)
             if not send_to:
-                exit_with_error(error_type=sdk.output_error_type.USER, 
-                                error_code=err_code.USER_CONFIG_ERROR,
-                                error_msg="send_to is None")
+                exit_with_error(
+                    error_type=sdk.output_error_type.USER,
+                    error_code=err_code.USER_CONFIG_ERROR,
+                    error_msg="send_to is None"
+                )
             sdk.log.info("send_to is {}".format(send_to))
 
             title = input_params.get("title", None)
             if not title:
-                exit_with_error(error_type=sdk.output_error_type.USER, 
-                                error_code=err_code.USER_CONFIG_ERROR,
-                                error_msg="title is None")
+                exit_with_error(
+                    error_type=sdk.output_error_type.USER,
+                    error_code=err_code.USER_CONFIG_ERROR,
+                    error_msg="title is None"
+                )
             sdk.log.info("title is {}".format(title))
 
             content = input_params.get("content", None)
             if not content:
-                exit_with_error(error_type=sdk.output_error_type.USER, 
-                                error_code=err_code.USER_CONFIG_ERROR,
-                                error_msg="content is None")
+                exit_with_error(
+                    error_type=sdk.output_error_type.USER,
+                    error_code=err_code.USER_CONFIG_ERROR,
+                    error_msg="content is None"
+                )
             sdk.log.info("content is {}".format(content))
 
     # 企业微信机器人配置
@@ -121,16 +127,20 @@ def main():
 
         robot_key = input_params.get("robot_key", None)
         if not robot_key:
-            exit_with_error(error_type=sdk.output_error_type.USER, 
-                            error_code=err_code.USER_CONFIG_ERROR,
-                            error_msg="robot_key is None")
+            exit_with_error(
+                error_type=sdk.output_error_type.USER,
+                error_code=err_code.USER_CONFIG_ERROR,
+                error_msg="robot_key is None"
+            )
         sdk.log.info("robot_key is {}".format(robot_key))
         
         msgtype = input_params.get("msgtype", None)
         if not msgtype:
-            exit_with_error(error_type=sdk.output_error_type.USER, 
-                            error_code=err_code.USER_CONFIG_ERROR,
-                            error_msg="msgtype is None")
+            exit_with_error(
+                error_type=sdk.output_error_type.USER,
+                error_code=err_code.USER_CONFIG_ERROR,
+                error_msg="msgtype is None"
+            )
         sdk.log.info("msgtype is {}".format(msgtype))
         
         if msgtype == "text":
@@ -141,9 +151,11 @@ def main():
 
         robot_content = input_params.get("robot_content", None)
         if not robot_content:
-            exit_with_error(error_type=sdk.output_error_type.USER, 
-                            error_code=err_code.USER_CONFIG_ERROR,
-                            error_msg="robot_content is None")
+            exit_with_error(
+                error_type=sdk.output_error_type.USER,
+                error_code=err_code.USER_CONFIG_ERROR,
+                error_msg="robot_content is None"
+            )
         sdk.log.info("robot_content is {}".format(robot_content))
 
     bk_app_code = sdk.get_sensitive_conf("bk_app_code")
@@ -152,21 +164,37 @@ def main():
     bk_username = sdk.get_sensitive_conf("bk_username")
     
     if bk_app_code is None:
-        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_app_code cannot be empty")
+        exit_with_error(
+            error_type=sdk.output_error_type.USER,
+            error_code=err_code.USER_CONFIG_ERROR,
+            error_msg="bk_app_code cannot be empty"
+        )
     
     if bk_app_secret is None:
-        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_app_secret cannot be empty")
+        exit_with_error(
+            error_type=sdk.output_error_type.USER,
+            error_code=err_code.USER_CONFIG_ERROR,
+            error_msg="bk_app_secret cannot be empty"
+        )
     
     if bk_host is None:
-        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_host cannot be empty")
+        exit_with_error(
+            error_type=sdk.output_error_type.USER,
+            error_code=err_code.USER_CONFIG_ERROR,
+            error_msg="bk_host cannot be empty"
+        )
     bk_host = bk_host.rstrip("/")
 
     if bk_username is None:
-        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_username cannot be empty")
+        exit_with_error(
+            error_type=sdk.output_error_type.USER,
+            error_code=err_code.USER_CONFIG_ERROR,
+            error_msg="bk_username cannot be empty"
+        )
 
     # 插件逻辑
 
-    headers={"Content-Type": "application/json; charset=utf-8"}
+    headers = {"Content-Type": "application/json; charset=utf-8"}
     api_url = bk_host + "/api/c/compapi/cmsi/send_msg/"
     data_tpl = {
             "bk_app_code": bk_app_code,
@@ -183,50 +211,74 @@ def main():
     sdk.log.info("send_by is {}".format(send_by))
     if "weixin" in send_by:
         data_tpl["msg_type"] = "weixin"
-        data=json.dumps(data_tpl)
+        data = json.dumps(data_tpl)
         sdk.log.info("【weixin】 send data is {}".format(data))
         resp = requests.post(
-            url=api_url, 
-            headers=headers, 
+            url=api_url,
+            headers=headers,
             data=data
         )
         if resp.status_code != 200:
-            exit_with_error(error_type=sdk.output_error_type.THIRD_PARTY, 
+            exit_with_error(error_type=sdk.output_error_type.THIRD_PARTY,
                             error_code=err_code.THIRD_PARTY,
                             error_msg=resp.text)
         resp_json = resp.json()
         
         sdk.log.info("【weixin】 response data is {}".format(resp_json))
         if resp_json["code"] != 0:
-            exit_with_error(error_type=sdk.output_error_type.USER, 
+            exit_with_error(error_type=sdk.output_error_type.USER,
                             error_code=err_code.USER_CONFIG_ERROR,
                             error_msg=resp_json["message"])
 
     if "mail" in send_by:
         data_tpl["msg_type"] = "mail"
+        attachment_file = input_params.get("attachment", None)
+        if attachment_file:
+            sdk.log.info("attachment is {}".format(attachment_file))
+            file_path = os.path.join(sdk.get_workspace(), attachment_file)
+            if not os.path.exists(file_path):
+                sdk.log.error("{} does not exist in workspace!".format(attachment_file))
+            else:
+                attachments = []
+                with open(file_path, 'rb') as f:
+                    content_encoded = base64.b64encode(f.read())
+                    if sys.version_info.major == 3:
+                        content_encoded = content_encoded.decode('utf-8')
+                    item = {
+                        "filename": attachment_file,
+                        "content": content_encoded
+                    }
+                    attachments.append(item)
+                data_tpl.update({"attachments": attachments})
+
         data = json.dumps(data_tpl)
-        sdk.log.info("【mail】 send data is {}".format(data))
         resp = requests.post(
-            url=api_url, 
-            headers=headers, 
+            url=api_url,
+            headers=headers,
             data=data
         )
         if resp.status_code != 200:
-            exit_with_error(error_type=sdk.output_error_type.THIRD_PARTY, 
-                            error_code=err_code.THIRD_PARTY,
-                            error_msg=resp.text)
+            exit_with_error(
+                error_type=sdk.output_error_type.THIRD_PARTY,
+                error_code=err_code.THIRD_PARTY,
+                error_msg=resp.text
+            )
         resp_json = resp.json()
         sdk.log.info("【mail】 response data is {}".format(resp_json))
         if resp_json["code"] != 0:
-            exit_with_error(error_type=sdk.output_error_type.USER, 
-                            error_code=err_code.USER_CONFIG_ERROR,
-                            error_msg=resp_json["message"])
+            exit_with_error(
+                error_type=sdk.output_error_type.USER,
+                error_code=err_code.USER_CONFIG_ERROR,
+                error_msg=resp_json["message"]
+            )
     if send_by_robot:
         robot_webhook = sdk.get_sensitive_conf("robot_webhook")
         if robot_webhook is None:
-            exit_with_error(error_type=sdk.output_error_type.USER, 
-                            error_code=err_code.USER_CONFIG_ERROR,
-                            error_msg="robot_webhook does not set")
+            exit_with_error(
+                error_type=sdk.output_error_type.USER,
+                error_code=err_code.USER_CONFIG_ERROR,
+                error_msg="robot_webhook does not set"
+            )
         webhook_url = robot_webhook + "?key=" + robot_key
         sdk.log.info("webhook_url is {}".format(webhook_url))
 
@@ -238,7 +290,9 @@ def main():
             if not os.path.exists(file_path):
                 sdk.log.error("{} does not exist in workspace!".format(artifact))
             else:
-                media_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media?key={KEY}&type=file".format(KEY=robot_key)
+                media_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media?key={KEY}&type=file".format(
+                    KEY=robot_key
+                )
                 files = {'file': (artifact, open(file_path, 'rb'), 'text/plain')}
                 r = requests.post(url=media_url, files=files)
                 r_json = r.json()
@@ -261,7 +315,7 @@ def main():
             "msgtype": "text",
             "text": {
                 "content": "",
-                "mentioned_list":mentioned_list
+                "mentioned_list": mentioned_list
             },
             "markdown": {
                 "content": ""
@@ -273,13 +327,14 @@ def main():
         
         resp = requests.post(url=webhook_url, headers=headers, data=json.dumps(body))
         if resp.status_code != 200:
-            exit_with_error(error_type=sdk.output_error_type.THIRD_PARTY, 
-                            error_code=err_code.THIRD_PARTY,
-                            error_msg=resp.text)
+            exit_with_error(
+                error_type=sdk.output_error_type.THIRD_PARTY,
+                error_code=err_code.THIRD_PARTY,
+                error_msg=resp.text
+            )
         resp_json = resp.json()
         sdk.log.info("【robot】 response data is {}".format(resp_json))
     # 插件执行结果、输出数据
     if not send_by and not send_by_robot :
         sdk.log.error("用户没有选择任何的发送方式")
     exit_with_succ()
-
