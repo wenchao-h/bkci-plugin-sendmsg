@@ -1,10 +1,10 @@
 {
     "atomCode": "sendmsg",
     "execution": {
-        "packagePath": "sendmsg-3.0.0.tar.gz",
+        "packagePath": "sendmsg-4.0.0.tar.gz",
         "language": "python",
         "demands": [
-            "pip install sendmsg-3.0.0.tar.gz"
+            "pip install sendmsg-4.0.0.tar.gz"
         ],
         "target": "sendmsg"
     },
@@ -93,6 +93,22 @@
                         "key": "send_by",
                         "value": "weixin"
                     },
+                    {
+                        "key": "send_by",
+                        "value": "mail"
+                    }
+                ]
+            }
+        },
+        "attachment": {
+            "label": "邮件附件",
+            "defaut": "",
+            "placeholder": "文件名，如error.log",
+            "type":"vuex-input",
+            "desc":"仅支持发送位于WORKSPACE中的文件，为空默认不发送",
+            "rely": {
+                "operation": "AND",
+                "expression": [
                     {
                         "key": "send_by",
                         "value": "mail"

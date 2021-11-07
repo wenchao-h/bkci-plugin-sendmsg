@@ -4,14 +4,11 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from requests.api import head
-
-from python_atom_sdk.setting import BK_ATOM_STATUS
 
 import python_atom_sdk as sdk
 from .error_code import ErrorCode
 
-import json, os
+import json, os, base64, sys
 import requests
 
 err_code = ErrorCode()
@@ -204,8 +201,26 @@ def main():
 
     if "mail" in send_by:
         data_tpl["msg_type"] = "mail"
+        attachment_file = input_params.get("attachment", None)
+        if attachment_file:
+            sdk.log.info("attachment is {}".format(attachment_file))
+            file_path = os.path.join(sdk.get_workspace(), attachment_file)
+            if not os.path.exists(file_path):
+                sdk.log.error("{} does not exist in workspace!".format(attachment_file))
+            else:
+                attachments = []
+                with open(file_path, 'rb') as f:
+                    content_encoded = base64.b64encode(f.read())
+                    if sys.version_info.major == 3:
+                        content_encoded = content_encoded.decode('utf-8')
+                    item = {
+                        "filename": attachment_file,
+                        "content": content_encoded
+                    }
+                    attachments.append(item)
+                data_tpl.update({"attachments": attachments})
+
         data = json.dumps(data_tpl)
-        sdk.log.info("【mail】 send data is {}".format(data))
         resp = requests.post(
             url=api_url, 
             headers=headers, 
