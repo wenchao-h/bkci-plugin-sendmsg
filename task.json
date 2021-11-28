@@ -1,10 +1,10 @@
 {
     "atomCode": "sendmsg",
     "execution": {
-        "packagePath": "sendmsg-4.0.0.tar.gz",
+        "packagePath": "sendmsg-5.0.0.tar.gz",
         "language": "python",
         "demands": [
-            "pip install sendmsg-4.0.0.tar.gz"
+            "pip install sendmsg-5.0.0.tar.gz"
         ],
         "target": "sendmsg"
     },
@@ -23,37 +23,38 @@
                     "id": "mail",
                     "name": "邮件",
                     "disable": false,
-                    "desc": "发送到邮件"
+                    "desc": "发送到邮件,支持蓝鲸用户以及非蓝鲸用户"
                 }
             ]
         },
-        "send_to": {
-            "label":"发送目标",
+        "weixin_receiver": {
+            "label":"企业微信消息接收人",
             "default":"",
-            "placeholder":"用户名",
+            "placeholder":"用户名，如ponyma",
             "type":"vuex-input",
-            "desc":"使用分号;分隔多个用户名",
+            "desc":"使用分号;分隔多个用户名,接收人需先绑定企业微信",
             "required": true,
-            "rely":{
-                "operation": "OR",
-                "expression":[
-                    {
-                        "key": "send_by",
-                        "value": ["weixin"]
-                    },
-                    {
-                        "key": "send_by",
-                        "value": ["weixin","mail"]
-                    },
-                    {
-                        "key": "send_by",
-                        "value": ["mail"] 
-                    },
-                    {
-                        "key": "send_by",
-                        "value": ["mail","weixin"]
-                    }
-                ]
+            "rely": {
+                "operation": "AND",
+                "expression":[{
+                    "key": "send_by",
+                    "value": ["weixin"]
+                }]
+            }
+        },
+        "mail_receiver":{
+            "label": "邮件接收人",
+            "default":"",
+            "placeholder":"用户名或者邮箱地址，如ponyma;ponyma@tencent.com",
+            "type":"vuex-input",
+            "desc":"使用分号;分隔多个接收人,接收人可以是蓝鲸用户名，或者邮箱地址",
+            "required": true,
+            "rely": {
+                "operation": "AND",
+                "expression":[{
+                    "key": "send_by",
+                    "value": ["mail"]
+                }]
             }
         },
         "title": {
@@ -61,7 +62,7 @@
             "default":"",
             "placeholder":"标题",
             "type":"vuex-input",
-            "desc":"企业微信消息标题或邮件标题",
+            "desc":"企业微信消息标题或邮件标题，可使用变量${var}",
             "required": true,
             "rely":{
                 "operation": "OR",

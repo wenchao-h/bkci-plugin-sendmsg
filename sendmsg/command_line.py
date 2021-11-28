@@ -71,25 +71,78 @@ def main():
 
     # 输入
     input_params = sdk.get_input()
+    # request headers
+    headers={"Content-Type": "application/json; charset=utf-8"}
+
+    # 私有配置
+    bk_app_code = sdk.get_sensitive_conf("bk_app_code")
+    bk_app_secret = sdk.get_sensitive_conf("bk_app_secret")
+    bk_host = sdk.get_sensitive_conf("bk_host")
+    bk_username = sdk.get_sensitive_conf("bk_username")
+    
+    if bk_app_code is None:
+        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_app_code cannot be empty")
+    
+    if bk_app_secret is None:
+        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_app_secret cannot be empty")
+    
+    if bk_host is None:
+        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_host cannot be empty")
+    bk_host = bk_host.rstrip("/")
+
+    if bk_username is None:
+        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_username cannot be empty")
 
     # 获取名为input_demo的输入字段值
     # 企业微信/邮件配置
     send_by = []
-    send_to = ""
     title = ""
     content = ""
     send_by_str = input_params.get("send_by", None)
+    weixin_receiver = input_params.get("weixin_receiver", None)
+    mail_receiver = input_params.get("mail_receiver", None)
+    mail_list = ""
     if send_by_str:
         send_by = json.loads(send_by_str)
         sdk.log.info("send_by is {}".format(send_by))
         if len(send_by) > 0:
+            if weixin_receiver:
+                sdk.log.info("weixin receiver is {}".format(weixin_receiver))
+            
+            if mail_receiver:
+                receivers = mail_receiver.split(";")
+       
+                # 获取非完整邮箱地址
+                usernames = list(filter(lambda x: "@" not in x, receivers))
+                sdk.log.info("receiver usernames is {}".format(usernames))
+                # 完整邮箱地址
+                mails = list(filter(lambda x: "@" in x, receivers))
 
-            send_to = input_params.get("send_to", None)
-            if not send_to:
-                exit_with_error(error_type=sdk.output_error_type.USER, 
-                                error_code=err_code.USER_CONFIG_ERROR,
-                                error_msg="send_to is None")
-            sdk.log.info("send_to is {}".format(send_to))
+                list_user_url = bk_host + "/api/c/compapi/v2/usermanage/list_users/"
+                request_data = {
+                    "bk_app_code": bk_app_code,
+                    "bk_app_secret": bk_app_secret,
+                    "bk_username": bk_username,
+                    "fields": "username,email",
+                    "exact_lookups": ",".join(usernames)
+                }
+                resp = requests.post(url=list_user_url, headers=headers, data=json.dumps(request_data))
+                if resp.status_code != 200:
+                    exit_with_error(error_type=sdk.output_error_type.THIRD_PARTY, 
+                                    error_code=err_code.THIRD_PARTY,
+                                    error_msg=resp.text)
+                resp_json = resp.json()
+                sdk.log.info("list user request response is {}".format(resp_json))
+                if resp_json["code"] != 0:
+                    exit_with_error(error_type=sdk.output_error_type.USER, 
+                                    error_code=err_code.USER_CONFIG_ERROR,
+                                    error_msg=resp_json["message"])
+                for item in resp_json["data"]["results"]:
+                    # 判断获取到的邮箱地址是否已经存在
+                    if item["email"] not in mails: 
+                        mails.append(item["email"])
+                mail_list = ";".join(mails)
+                sdk.log.info("email receiver is {}".format(mail_list))
 
             title = input_params.get("title", None)
             if not title:
@@ -143,40 +196,36 @@ def main():
                             error_msg="robot_content is None")
         sdk.log.info("robot_content is {}".format(robot_content))
 
-    bk_app_code = sdk.get_sensitive_conf("bk_app_code")
-    bk_app_secret = sdk.get_sensitive_conf("bk_app_secret")
-    bk_host = sdk.get_sensitive_conf("bk_host")
-    bk_username = sdk.get_sensitive_conf("bk_username")
-    
-    if bk_app_code is None:
-        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_app_code cannot be empty")
-    
-    if bk_app_secret is None:
-        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_app_secret cannot be empty")
-    
-    if bk_host is None:
-        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_host cannot be empty")
-    bk_host = bk_host.rstrip("/")
 
-    if bk_username is None:
-        exit_with_error(error_type=sdk.output_error_type.USER, error_code=err_code.USER_CONFIG_ERROR, error_msg="bk_username cannot be empty")
 
     # 插件逻辑
 
-    headers={"Content-Type": "application/json; charset=utf-8"}
+    # 通用消息通知
     api_url = bk_host + "/api/c/compapi/cmsi/send_msg/"
     data_tpl = {
             "bk_app_code": bk_app_code,
             "bk_app_secret": bk_app_secret,
             "bk_username": bk_username,
             "msg_type": "weixin",
-            "receiver__username": send_to,
+            "receiver__username": weixin_receiver,
             "title": title,
             "content": content,
             "body_format": "Text"
         }
 
     
+    # 邮件通知
+    mail_api_url = bk_host + "/api/c/compapi/cmsi/send_mail/"
+    mail_data_tpl = {
+            "bk_app_code": bk_app_code,
+            "bk_app_secret": bk_app_secret,
+            "bk_username": bk_username,
+            "receiver": mail_list,
+            "title": title,
+            "content": content,
+            "body_format": "Text"
+        }
+
     sdk.log.info("send_by is {}".format(send_by))
     if "weixin" in send_by:
         data_tpl["msg_type"] = "weixin"
@@ -200,7 +249,6 @@ def main():
                             error_msg=resp_json["message"])
 
     if "mail" in send_by:
-        data_tpl["msg_type"] = "mail"
         attachment_file = input_params.get("attachment", None)
         if attachment_file:
             sdk.log.info("attachment is {}".format(attachment_file))
@@ -218,11 +266,11 @@ def main():
                         "content": content_encoded
                     }
                     attachments.append(item)
-                data_tpl.update({"attachments": attachments})
+                mail_data_tpl.update({"attachments": attachments})
 
-        data = json.dumps(data_tpl)
+        data = json.dumps(mail_data_tpl)
         resp = requests.post(
-            url=api_url, 
+            url=mail_api_url, 
             headers=headers, 
             data=data
         )

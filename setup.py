@@ -23,7 +23,7 @@ def parse_requirements():
 
 if __name__ == "__main__":
     setup(
-        version="4.0.0",
+        version="5.0.0",
         name="sendmsg",
         description="",
 
