@@ -8,6 +8,7 @@ import json
 import os
 import base64
 import sys
+from string import Template
 
 import requests
 
@@ -66,6 +67,28 @@ def exit_with_succ(data=None, quality_data=None, msg="run succ"):
     exit(err_code.OK)
 
 
+def get_kwargs_map():
+    """
+    @summary: self-defined variable map based on BK
+    """
+    kwargs_map = {}
+    usermgr_host = sdk.get_sensitive_conf("usermgr_host")
+    if usermgr_host:
+        username = sdk.get_pipeline_start_user_name()
+        api_url = usermgr_host + "/api/v2/profiles/{}/?lookup_field=username".format(username)
+        resp = requests.get(api_url)
+        resp_j = resp.json()
+        if resp_j["code"] != 0:
+            sdk.log.info("request %s failed, please connact the devloper."%api_url)
+            return kwargs_map
+        display_name = resp_j["data"]["display_name"]
+        kwargs_map["BK_CI_START_FULLNAME"] = display_name
+    else:
+        sdk.log.info("wrong config, please check sensitive config.")
+        return kwargs_map
+    return kwargs_map
+
+
 def main():
     """
     @summary: main
@@ -74,7 +97,7 @@ def main():
 
     # 输入
     input_params = sdk.get_input()
-
+    kwargs_map = get_kwargs_map()
     # 获取名为input_demo的输入字段值
     # 企业微信/邮件配置
     send_by = []
@@ -94,6 +117,8 @@ def main():
                     error_code=err_code.USER_CONFIG_ERROR,
                     error_msg="send_to is None"
                 )
+
+            send_to = ";".join(json.loads(send_to))
             sdk.log.info("send_to is {}".format(send_to))
 
             title = input_params.get("title", None)
@@ -103,6 +128,8 @@ def main():
                     error_code=err_code.USER_CONFIG_ERROR,
                     error_msg="title is None"
                 )
+            title_tpl = Template(title)
+            title = title_tpl.safe_substitute(kwargs_map)
             sdk.log.info("title is {}".format(title))
 
             content = input_params.get("content", None)
@@ -112,6 +139,8 @@ def main():
                     error_code=err_code.USER_CONFIG_ERROR,
                     error_msg="content is None"
                 )
+            content_tpl = Template(content)
+            content = content_tpl.safe_substitute(kwargs_map)
             sdk.log.info("content is {}".format(content))
 
     # 企业微信机器人配置
@@ -146,7 +175,7 @@ def main():
         if msgtype == "text":
             mentioned = input_params.get("mentioned", None)
             if mentioned:
-                mentioned_list = mentioned.split(";")
+                mentioned_list = json.loads(mentioned)
             sdk.log.info("mentioned_list is {}".format(mentioned_list))
 
         robot_content = input_params.get("robot_content", None)
@@ -156,6 +185,8 @@ def main():
                 error_code=err_code.USER_CONFIG_ERROR,
                 error_msg="robot_content is None"
             )
+        robot_content_tpl = Template(robot_content)
+        robot_content = robot_content_tpl.safe_substitute(kwargs_map)
         sdk.log.info("robot_content is {}".format(robot_content))
 
     bk_app_code = sdk.get_sensitive_conf("bk_app_code")

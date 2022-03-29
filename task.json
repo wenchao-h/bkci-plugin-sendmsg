@@ -1,10 +1,10 @@
 {
     "atomCode": "sendmsg",
     "execution": {
-        "packagePath": "sendmsg-4.0.0.tar.gz",
+        "packagePath": "sendmsg-6.0.0.tar.gz",
         "language": "python",
         "demands": [
-            "pip install sendmsg-4.0.0.tar.gz"
+            "pip install sendmsg-6.0.0.tar.gz"
         ],
         "target": "sendmsg"
     },
@@ -31,7 +31,8 @@
             "label":"发送目标",
             "default":"",
             "placeholder":"用户名",
-            "type":"vuex-input",
+            "type":"user-input",
+            "inputType": "all",
             "desc":"使用分号;分隔多个用户名",
             "required": true,
             "rely":{
@@ -171,7 +172,8 @@
         },
         "mentioned": {
             "label": "@群成员",
-            "type": "vuex-input",
+            "type": "user-input",
+            "inputType": "all",
             "default": "",
             "placeholder": "PonyMa;@all",
             "desc":"使用企业微信UserId，通过管理员后台可获取，分号分隔多个UserId",
