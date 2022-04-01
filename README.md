@@ -34,7 +34,7 @@ source ${CTRL_DIR:-/data/install}/load_env.sh
 echo "bk_app_code      $BK_CI_APP_CODE"
 echo "bk_app_secret    $BK_CI_APP_TOKEN"
 echo "bk_host          $BK_PAAS_PUBLIC_URL"
-echo "usermgr_host     $BK_USERMGR_IP"
+echo "usermgr_host     http://${BK_USERMGR_IP}:8009"
 
 
 # 参考输出
