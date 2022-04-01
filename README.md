@@ -26,6 +26,7 @@
 3. bk_host: paas地址
 4. bk_username: 调用ESB接口的用户，可为admin
 5. robot_webhook: 企业微信机器人webhook地址（不包含key), 为`https://qyapi.weixin.qq.com/cgi-bin/webhook/send`
+6. usermgr_host: http://{usermgr_ip}:8009, usermgr_ip为部署用户管理服务的机器IP
 
 ```
 source ${CTRL_DIR:-/data/install}/load_env.sh
@@ -33,12 +34,14 @@ source ${CTRL_DIR:-/data/install}/load_env.sh
 echo "bk_app_code      $BK_CI_APP_CODE"
 echo "bk_app_secret    $BK_CI_APP_TOKEN"
 echo "bk_host          $BK_PAAS_PUBLIC_URL"
+echo "usermgr_host     $BK_USERMGR_IP"
 
 
 # 参考输出
 bk_app_code       bk_ci
 bk_app_secret     略
 bk_host           http://paas.bktencent.com:80
+usemgr_host       http://192.168.1.1:8009
 ```
 
 ## 企业微信配置
@@ -84,6 +87,11 @@ bk_host           http://paas.bktencent.com:80
 
 在蓝盾里使用本插件（需要选择编译环境）, 选择发送企业微信方式，发送目标为蓝鲸用户名
 
-
+## 自定义变量使用
+目前支持的自定义变量有
+```
+BK_CI_START_FULLNAME  表示流水线启动者的全名
+```
+使用方式：在插件标题或者内容里`${BK_CI_START_FULLNAME}`引用即可
 
 
