@@ -41,7 +41,7 @@ echo "usermgr_host     $BK_USERMGR_IP"
 bk_app_code       bk_ci
 bk_app_secret     略
 bk_host           http://paas.bktencent.com:80
-usemgr_host       http://192.168.1.1:8009
+usermgr_host      http://192.168.1.1:8009
 ```
 
 ## 企业微信配置
