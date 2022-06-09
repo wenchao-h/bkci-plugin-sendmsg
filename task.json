@@ -1,10 +1,10 @@
 {
     "atomCode": "sendmsg",
     "execution": {
-        "packagePath": "sendmsg-5.0.0.tar.gz",
+        "packagePath": "sendmsg-6.0.0.tar.gz",
         "language": "python",
         "demands": [
-            "pip install sendmsg-5.0.0.tar.gz"
+            "pip install sendmsg-6.0.0.tar.gz"
         ],
         "target": "sendmsg"
     },
@@ -30,9 +30,10 @@
         "weixin_receiver": {
             "label":"企业微信消息接收人",
             "default":"",
-            "placeholder":"用户名，如ponyma",
-            "type":"vuex-input",
-            "desc":"使用分号;分隔多个用户名,接收人需先绑定企业微信",
+            "placeholder":"用户名,如ponyma",
+            "type":"user-input",
+            "inputType": "all",
+            "desc":"使用分号;分隔多个用户名",
             "required": true,
             "rely": {
                 "operation": "AND",
@@ -172,7 +173,8 @@
         },
         "mentioned": {
             "label": "@群成员",
-            "type": "vuex-input",
+            "type": "user-input",
+            "inputType": "all",
             "default": "",
             "placeholder": "PonyMa;@all",
             "desc":"使用企业微信UserId，通过管理员后台可获取，分号分隔多个UserId",
