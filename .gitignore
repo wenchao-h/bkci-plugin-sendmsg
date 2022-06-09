@@ -6,3 +6,10 @@ dist/
 __pycache__/
 *.py[cod]
 *$py.class
+
+.sdk.json
+build.yml
+input.json
+output.json
+.vscode/
+.codecc/
