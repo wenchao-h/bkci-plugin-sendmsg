@@ -1,9 +1,9 @@
-
-[TOC]
 ## 插件功能
-1. 发送企业微信消息(需要配置ESB)
-2. 发送邮件消息(需要配置ESB)
-3. 发送群消息
+1. 发送企业微信消息([需要配置ESB](#企业微信配置))
+2. 发送邮件消息([需要配置ESB](https://bk.tencent.com/s-mart/community/question/2532))
+3. 发送钉钉单聊消息
+4. 发送企业微信群消息
+5. 发送钉钉群消息
    
 ## 插件打包
  1. 进入插件代码工程根目录下
@@ -28,21 +28,21 @@
 5. robot_webhook: 企业微信机器人webhook地址（不包含key), 为`https://qyapi.weixin.qq.com/cgi-bin/webhook/send`
 6. usermgr_host: http://{usermgr_ip}:8009, usermgr_ip为部署用户管理服务的机器IP
 
-```
-source ${CTRL_DIR:-/data/install}/load_env.sh
+    ```bash
+    source ${CTRL_DIR:-/data/install}/load_env.sh
 
-echo "bk_app_code      $BK_CI_APP_CODE"
-echo "bk_app_secret    $BK_CI_APP_TOKEN"
-echo "bk_host          $BK_PAAS_PUBLIC_URL"
-echo "usermgr_host     http://${BK_USERMGR_IP}:8009"
+    echo "bk_app_code      $BK_CI_APP_CODE"
+    echo "bk_app_secret    $BK_CI_APP_TOKEN"
+    echo "bk_host          $BK_PAAS_PUBLIC_URL"
+    echo "usermgr_host     http://${BK_USERMGR_IP}:8009"
 
 
-# 参考输出
-bk_app_code       bk_ci
-bk_app_secret     略
-bk_host           http://paas.bktencent.com:80
-usermgr_host      http://192.168.1.1:8009
-```
+    # 参考输出
+    bk_app_code       bk_ci
+    bk_app_secret     略
+    bk_host           http://paas.bktencent.com:80
+    usermgr_host      http://192.168.1.1:8009
+    ```
 
 ## 企业微信配置
 
@@ -89,9 +89,11 @@ usermgr_host      http://192.168.1.1:8009
 
 ## 自定义变量使用
 目前支持的自定义变量有
-```
+```bash
 BK_CI_START_FULLNAME  表示流水线启动者的全名
 ```
 使用方式：在插件标题或者内容里`${BK_CI_START_FULLNAME}`引用即可
 
+## 钉钉单聊/群消息配置
+要发送钉钉单聊/群消息，需要先为蓝鲸配置钉钉通知渠道，参考：https://github.com/wenchao-h/ding-blueking
 

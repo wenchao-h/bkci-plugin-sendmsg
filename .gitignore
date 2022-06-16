@@ -10,6 +10,7 @@ __pycache__/
 .sdk.json
 build.yml
 input.json
+*input.json
 output.json
 .vscode/
 .codecc/

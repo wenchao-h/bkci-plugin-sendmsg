@@ -1,10 +1,10 @@
 {
     "atomCode": "sendmsg",
     "execution": {
-        "packagePath": "sendmsg-6.0.0.tar.gz",
+        "packagePath": "sendmsg-7.0.0.tar.gz",
         "language": "python",
         "demands": [
-            "pip install sendmsg-6.0.0.tar.gz"
+            "pip install sendmsg-7.0.0.tar.gz"
         ],
         "target": "sendmsg"
     },
@@ -17,38 +17,47 @@
                     "id": "weixin",
                     "name": "企业微信",
                     "disable": false,
-                    "desc": "消息会发送到企业微信应用号，需先在ESB配置企业微信应用号信息"
+                    "desc": "消息会发送到企业微信应用号, 需先在ESB配置企业微信应用号信息"
                 }, 
                 {
                     "id": "mail",
                     "name": "邮件",
                     "disable": false,
                     "desc": "发送到邮件,支持蓝鲸用户以及非蓝鲸用户"
+                },
+                {
+                    "id": "dingtalk",
+                    "name": "钉钉",
+                    "disable": false,
+                    "desc": "发送单聊消息到蓝鲸用户对应的钉钉号,需先正确配置钉钉通知,参考: https://github.com/wenchao-h/ding-blueking"
                 }
             ]
         },
-        "weixin_receiver": {
-            "label":"企业微信消息接收人",
+        "send_to": {
+            "label":"发送目标",
             "default":"",
-            "placeholder":"用户名,如ponyma",
+            "placeholder":"接收企业微信/钉钉消息的蓝鲸用户名",
             "type":"user-input",
             "inputType": "all",
-            "desc":"使用分号;分隔多个用户名",
+            "desc":"输入回车分隔多个用户名",
             "required": true,
-            "rely": {
-                "operation": "AND",
-                "expression":[{
-                    "key": "send_by",
-                    "value": ["weixin"]
-                }]
+            "rely":{
+                "operation": "OR",
+                "expression":[
+                    {
+                        "key": "send_by",
+                        "value": ["weixin","dingtalk"]
+                    }
+                ]
             }
         },
         "mail_receiver":{
             "label": "邮件接收人",
             "default":"",
-            "placeholder":"用户名或者邮箱地址，如ponyma;ponyma@tencent.com",
-            "type":"vuex-input",
-            "desc":"使用分号;分隔多个接收人,接收人可以是蓝鲸用户名，或者邮箱地址",
+            "placeholder":"用户名或者邮箱地址,如ponyma或者ponyma@tencent.com",
+            "type":"user-input",
+            "inputType": "all",
+            "desc":"输入回车分隔多个接收人,接收人可以是蓝鲸用户名，或者邮箱地址",
             "required": true,
             "rely": {
                 "operation": "AND",
@@ -63,7 +72,7 @@
             "default":"",
             "placeholder":"标题",
             "type":"vuex-input",
-            "desc":"企业微信消息标题或邮件标题，可使用变量${var}",
+            "desc":"企业微信/钉钉/邮件标题，可使用变量${var}",
             "required": true,
             "rely":{
                 "operation": "OR",
@@ -75,6 +84,10 @@
                     {
                         "key": "send_by",
                         "value": "mail"
+                    },
+                    {
+                        "key": "send_by",
+                        "value": "dingtalk"
                     }
                 ]
             }
@@ -86,7 +99,7 @@
             "disabled": false,
             "hidden": false,
             "isSensitive": false,
-            "desc": "消息内容，可使用变量${VAR}",
+            "desc": "企业微信/钉钉/邮件消息内容，可使用变量${VAR}",
             "required": true,
             "rely":{
                 "operation": "OR",
@@ -98,6 +111,10 @@
                     {
                         "key": "send_by",
                         "value": "mail"
+                    },
+                    {
+                        "key": "send_by",
+                        "value": "dingtalk"
                     }
                 ]
             }
@@ -105,9 +122,9 @@
         "attachment": {
             "label": "邮件附件",
             "defaut": "",
-            "placeholder": "文件名，如error.log",
+            "placeholder": "文件名,如error.log",
             "type":"vuex-input",
-            "desc":"仅支持发送位于WORKSPACE中的文件，为空默认不发送",
+            "desc":"仅支持发送位于WORKSPACE中的文件,为空默认不发送",
             "rely": {
                 "operation": "AND",
                 "expression": [
@@ -118,31 +135,31 @@
                 ]
             }
         },
-        "send_by_robot": {
+        "send_by_webot": {
             "label": "",
             "type": "atom-checkbox",
             "default": false,
-            "text": "发送至企业微信群机器人",
+            "text": "企业微信群机器人",
             "desc": ""
         },
-        "robot_key": {
+        "webot_key": {
             "label":"机器人webhook key",
             "default":"",
             "placeholder":"机器人webhook key",
             "type":"vuex-input",
-            "desc":"企业微信机器人webhook key，建议使用凭证管理",
+            "desc":"企业微信机器人webhook key,建议使用凭证管理",
             "required": true,
             "rely": {
                 "operation": "AND",
                 "expression": [
                     {
-                        "key": "send_by_robot",
+                        "key": "send_by_webot",
                         "value": true
                     }
                 ]
             }
         },
-        "msgtype": {
+        "webot_msgtype": {
             "label": "消息类型",
             "type": "selector",
             "default": "text",
@@ -165,61 +182,195 @@
                 "operation": "AND",
                 "expression": [
                     {
-                        "key": "send_by_robot",
+                        "key": "send_by_webot",
                         "value": true
                     }
                 ]
             }
         },
-        "mentioned": {
+        "webot_mentioned": {
             "label": "@群成员",
             "type": "user-input",
             "inputType": "all",
             "default": "",
             "placeholder": "PonyMa;@all",
-            "desc":"使用企业微信UserId，通过管理员后台可获取，分号分隔多个UserId",
+            "desc":"使用企业微信UserId,通过管理员后台可获取,分号分隔多个UserId",
             "rely": {
                 "operation":"AND",
                 "expression":[
                     {
-                        "key":"send_by_robot",
+                        "key":"send_by_webot",
                         "value": true
                     },
                     {
-                        "key": "msgtype",
+                        "key": "webot_msgtype",
                         "value": "text"
                     }
                 ]
             }
         },
-        "robot_content": {
+        "webot_content": {
             "label": "群消息内容",
             "type": "vuex-textarea",
             "default": "",
-            "placeholder": "消息类型为markdown时，可使用markdown语法",
-            "desc":"消息类型为markdown时，可使用markdown语法",
+            "placeholder": "消息类型为markdown时,可使用markdown语法",
+            "desc":"消息类型为markdown时,可使用markdown语法",
             "required": true,
             "rely": {
                 "operation": "AND",
                 "expression": [
                     {
-                        "key": "send_by_robot",
+                        "key": "send_by_webot",
                         "value": true
                     }
                 ]
             }
         },
-        "artifact": {
+        "webot_artifact": {
             "label":"发送文件",
             "default":"",
-            "placeholder":"文件名，如error.log",
+            "placeholder":"文件名,如error.log",
             "type":"vuex-input",
-            "desc":"仅支持发送位于WORKSPACE中的文件，为空默认不发送",
+            "desc":"仅支持发送位于WORKSPACE中的文件,为空默认不发送",
             "rely": {
                 "operation": "AND",
                 "expression": [
                     {
-                        "key": "send_by_robot",
+                        "key": "send_by_webot",
+                        "value": true
+                    }
+                ]
+            }
+        },
+        "send_by_dingbot": {
+            "label": "",
+            "type": "atom-checkbox",
+            "default": false,
+            "text": "钉钉群机器人",
+            "desc": "需先正确配置钉钉通知, 参考: https://github.com/wenchao-h/ding-blueking"
+        },
+        "dingbot_receiver": {
+            "label":"钉钉群机器人",
+            "default":"",
+            "placeholder":"群机器人用户名,如dingbot",
+            "type":"user-input",
+            "inputType": "all",
+            "desc":"输入回车自动分隔多个机器人用户名",
+            "required": true,
+            "rely": {
+                "operation": "AND",
+                "expression":[{
+                    "key": "send_by_dingbot",
+                    "value": true
+                }]
+            }
+        },
+        "dingbot_msgtype": {
+            "label": "消息类型",
+            "type": "selector",
+            "default": "text",
+            "desc": "消息类型可以为text/markdown",
+            "options": [
+                {
+                    "id": "text",
+                    "name": "text",
+                    "desc": "",
+                    "disable": false
+                },
+                {
+                    "id": "markdown",
+                    "name": "markdown",
+                    "desc": "待开放",
+                    "disable": false
+                }
+            ],
+            "rely": {
+                "operation": "AND",
+                "expression": [
+                    {
+                        "key": "send_by_dingbot",
+                        "value": true
+                    }
+                ]
+            }
+        },
+        "dingbot_title": {
+            "label":"标题",
+            "default":"",
+            "placeholder":"标题",
+            "type":"vuex-input",
+            "desc":"钉钉群消息标题，可使用变量${var}，仅当消息类型为markdown时有效",
+            "required": true,
+            "rely":{
+                "operation": "AND",
+                "expression":[
+                    {
+                        "key":"send_by_dingbot",
+                        "value": true
+                    },
+                    {
+                        "key": "dingbot_msgtype",
+                        "value": "markdown"
+                    }
+                ]
+            }
+        },
+        "dingbot_at_username":{
+            "label":"@群成员用户名",
+            "default":"",
+            "placeholder":"群成员蓝鲸用户名ponyma，输入回车自动分隔多个群成员",
+            "type":"user-input",
+            "inputType": "all",
+            "desc":"蓝鲸用户需在用户管理正确配置手机号信息，输入回车自动分隔多个群成员",
+            "required": false,
+            "rely":{
+                "operation": "AND",
+                "expression":[
+                    {
+                        "key":"send_by_dingbot",
+                        "value": true
+                    },
+                    {
+                        "key": "dingbot_msgtype",
+                        "value": "text"
+                    }
+                ]
+            }
+        },
+        "dingbot_at_mobile":{
+            "label":"@群成员手机号",
+            "default":"",
+            "placeholder":"群成员手机号,如13100000000",
+            "type":"user-input",
+            "inputType": "all",
+            "desc":"通过手机号@群成员，输入回车自动分隔多个手机号",
+            "required": false,
+            "rely":{
+                "operation": "AND",
+                "expression":[
+                    {
+                        "key":"send_by_dingbot",
+                        "value": true
+                    },
+                    {
+                        "key": "dingbot_msgtype",
+                        "value": "text"
+                    }
+                ]
+            }
+        },
+        "dingbot_content": {
+            "label": "钉钉群消息内容",
+            "type": "vuex-textarea",
+            "default": "",
+            "placeholder": "消息类型为markdown时,可使用markdown语法",
+            "desc":"消息类型为markdown时,可使用markdown语法",
+            "required": true,
+            "rely": {
+                "operation": "AND",
+                "expression": [
+                    {
+                        "key": "send_by_dingbot",
                         "value": true
                     }
                 ]

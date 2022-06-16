@@ -87,108 +87,40 @@ def get_kwargs_map():
         sdk.log.info("wrong config, please check sensitive config.")
         return kwargs_map
     return kwargs_map
-
+    
+def get_response(url, method, data=None, desc=""):
+    if method == "get":
+        resp = requests.get(url)
+    elif method == "post":
+        headers = {"Content-Type": "application/json; charset=utf-8"}
+        sdk.log.info("%s send data: %s"%(desc, data))
+        resp = requests.post(url, headers=headers, data=json.dumps(data))
+    else:
+        exit_with_error(
+            error_type=sdk.output_error_type.USER,
+            error_code=err_code.USER_CONFIG_ERROR,
+            error_msg="method is not get or post."
+        )
+    if resp.status_code != 200:
+        exit_with_error(error_type=sdk.output_error_type.THIRD_PARTY,
+                        error_code=err_code.THIRD_PARTY,
+                        error_msg=resp.text)
+    resp_json = resp.json()
+    
+    sdk.log.info("{} response data is {}".format(desc, resp_json))
+    if resp_json["code"] != 0:
+        exit_with_error(error_type=sdk.output_error_type.USER,
+                        error_code=err_code.USER_CONFIG_ERROR,
+                        error_msg=resp_json["message"])
+    return resp_json
 
 def main():
     """
     @summary: main
     """
     sdk.log.info("enter main")
-
-    # 输入
-    input_params = sdk.get_input()
-    kwargs_map = get_kwargs_map()
-    # 获取名为input_demo的输入字段值
-    # 企业微信/邮件配置
-    send_by = []
-    send_to = ""
-    title = ""
-    content = ""
-    send_by_str = input_params.get("send_by", None)
-    if send_by_str:
-        send_by = json.loads(send_by_str)
-        sdk.log.info("send_by is {}".format(send_by))
-        if len(send_by) > 0:
-
-            send_to = input_params.get("send_to", None)
-            if not send_to:
-                exit_with_error(
-                    error_type=sdk.output_error_type.USER,
-                    error_code=err_code.USER_CONFIG_ERROR,
-                    error_msg="send_to is None"
-                )
-
-            send_to = ";".join(json.loads(send_to))
-            sdk.log.info("send_to is {}".format(send_to))
-
-            title = input_params.get("title", None)
-            if not title:
-                exit_with_error(
-                    error_type=sdk.output_error_type.USER,
-                    error_code=err_code.USER_CONFIG_ERROR,
-                    error_msg="title is None"
-                )
-            title_tpl = Template(title)
-            title = title_tpl.safe_substitute(kwargs_map)
-            sdk.log.info("title is {}".format(title))
-
-            content = input_params.get("content", None)
-            if not content:
-                exit_with_error(
-                    error_type=sdk.output_error_type.USER,
-                    error_code=err_code.USER_CONFIG_ERROR,
-                    error_msg="content is None"
-                )
-            content_tpl = Template(content)
-            content = content_tpl.safe_substitute(kwargs_map)
-            sdk.log.info("content is {}".format(content))
-
-    # 企业微信机器人配置
-    send_by_robot_str = input_params.get("send_by_robot", None)
-    sdk.log.info("send_by_robot is {}".format(send_by_robot_str))
-    send_by_robot = False
-    robot_key = ""
-    msgtype = "text"
-    mentioned_list = []
-    robot_content = ""
-    if send_by_robot_str == "true":
-        send_by_robot = True
-
-        robot_key = input_params.get("robot_key", None)
-        if not robot_key:
-            exit_with_error(
-                error_type=sdk.output_error_type.USER,
-                error_code=err_code.USER_CONFIG_ERROR,
-                error_msg="robot_key is None"
-            )
-        sdk.log.info("robot_key is {}".format(robot_key))
-        
-        msgtype = input_params.get("msgtype", None)
-        if not msgtype:
-            exit_with_error(
-                error_type=sdk.output_error_type.USER,
-                error_code=err_code.USER_CONFIG_ERROR,
-                error_msg="msgtype is None"
-            )
-        sdk.log.info("msgtype is {}".format(msgtype))
-        
-        if msgtype == "text":
-            mentioned = input_params.get("mentioned", None)
-            if mentioned:
-                mentioned_list = json.loads(mentioned)
-            sdk.log.info("mentioned_list is {}".format(mentioned_list))
-
-        robot_content = input_params.get("robot_content", None)
-        if not robot_content:
-            exit_with_error(
-                error_type=sdk.output_error_type.USER,
-                error_code=err_code.USER_CONFIG_ERROR,
-                error_msg="robot_content is None"
-            )
-        robot_content_tpl = Template(robot_content)
-        robot_content = robot_content_tpl.safe_substitute(kwargs_map)
-        sdk.log.info("robot_content is {}".format(robot_content))
-
+    
+    # 插件私有配置
     bk_app_code = sdk.get_sensitive_conf("bk_app_code")
     bk_app_secret = sdk.get_sensitive_conf("bk_app_secret")
     bk_host = sdk.get_sensitive_conf("bk_host")
@@ -223,11 +155,145 @@ def main():
             error_msg="bk_username cannot be empty"
         )
 
-    # 插件逻辑
+    # 输入
+    input_params = sdk.get_input()
+    kwargs_map = get_kwargs_map()
+
+    # 企业微信/钉钉接收人
+    send_by = []
+    send_to = ""
+    send_by_str = input_params.get("send_by", None)
+    if send_by_str:
+        send_by = json.loads(send_by_str)
+        sdk.log.info("send_by is {}".format(send_by))
+        if "mail" in send_by or "dingtalk" in send_by or "weixin" in send_by:
+
+            send_to = input_params.get("send_to", None)
+            send_to = json.loads(send_to)
+            send_to = ",".join(send_to)
+
+
+
+    # 邮件接收人
+    mail_receiver = input_params.get("mail_receiver")
+    mail_list = ""
+    if "mail" in send_by and mail_receiver:
+        receivers = json.loads(mail_receiver)
+
+        # 获取非完整邮箱地址
+        usernames = list(filter(lambda x: "@" not in x, receivers))
+        sdk.log.info("receiver usernames is {}".format(usernames))
+        # 完整邮箱地址
+        mails = list(filter(lambda x: "@" in x, receivers))
+
+        list_user_url = bk_host + "/api/c/compapi/v2/usermanage/list_users/"
+        request_data = {
+            "bk_app_code": bk_app_code,
+            "bk_app_secret": bk_app_secret,
+            "bk_username": bk_username,
+            "fields": "username,email",
+            "exact_lookups": ",".join(usernames)
+        }
+        resp_json = get_response(url=list_user_url, method="post", data=request_data, desc="list_users")
+
+        for item in resp_json["data"]["results"]:
+            # 判断获取到的邮箱地址是否已经存在
+            if item["email"] not in mails: 
+                mails.append(item["email"])
+        mail_list = ",".join(mails)
+        sdk.log.info("email receiver is {}".format(mail_list))
+
+    # 企业微信/钉钉/邮件的共同发送内容
+    title = ""
+    content = ""
+    if send_to or mail_receiver:
+
+        title = input_params.get("title", None)
+        title_tpl = Template(title)
+        title = title_tpl.safe_substitute(kwargs_map)
+        sdk.log.info("title is {}".format(title))
+
+        content = input_params.get("content", None)
+        content_tpl = Template(content)
+        content = content_tpl.safe_substitute(kwargs_map)
+        sdk.log.info("content is {}".format(content))
+
+    # 企业微信机器人配置
+    send_by_webot_str = input_params.get("send_by_webot", None)
+    sdk.log.info("send_by_webot is {}".format(send_by_webot_str))
+    send_by_webot = False
+    webot_key = ""
+    webot_msgtype = "text"
+    webot_mentioned_list = []
+    webot_content = ""
+    if send_by_webot_str == "true":
+        send_by_webot = True
+        webot_key = input_params.get("webot_key", None)
+        if not webot_key:
+            exit_with_error(
+                error_type=sdk.output_error_type.USER,
+                error_code=err_code.USER_CONFIG_ERROR,
+                error_msg="webot_key is None"
+            )
+        sdk.log.info("webot_key is {}".format(webot_key))
+        
+        webot_msgtype = input_params.get("webot_msgtype", None)
+        sdk.log.info("webot_msgtype is {}".format(webot_msgtype))
+        
+        if webot_msgtype == "text":
+            webot_mentioned = input_params.get("webot_mentioned", None)
+            if webot_mentioned:
+                webot_mentioned_list = json.loads(webot_mentioned)
+            sdk.log.info("webot_mentioned_list is {}".format(webot_mentioned_list))
+
+        webot_content = input_params.get("webot_content", None)
+        webot_content_tpl = Template(webot_content)
+        webot_content = webot_content_tpl.safe_substitute(kwargs_map)
+        sdk.log.info("robot_content is {}".format(webot_content))
+
+    # 钉钉机器人配置
+    send_by_dingbot_str = input_params.get("send_by_dingbot", None)
+    send_by_dingbot = False
+    dingbot_receiver = ""
+    dingbot_content = ""
+    if send_by_dingbot_str == "true":
+        send_by_dingbot = True
+        dingbot_msgtype = input_params.get("dingbot_msgtype", None)
+        if not dingbot_msgtype:
+            exit_with_error(
+                error_type=sdk.output_error_type.USER,
+                error_code=err_code.USER_CONFIG_ERROR,
+                error_msg="dingbot_msgtype is None"
+            )
+        sdk.log.info("dingbot_msgtype is {}".format(dingbot_msgtype))
+
+        dingbot_receiver = json.loads(input_params.get("dingbot_receiver"))
+        dingbot_receiver = ",".join(dingbot_receiver)
+        dingbot_at_username_list = []
+        dingbot_at_mobile_list = []
+        ## TODO: 群@功能
+        if dingbot_msgtype == "text":
+            dingbot_at_username = input_params.get("dingbot_at_username", None)
+            if dingbot_at_username:
+                dingbot_at_username_list = json.loads(dingbot_at_username)
+            dingbot_at_mobile = input_params.get("dingbot_at_mobile", None)
+            if dingbot_at_mobile:
+                dingbot_at_mobile_list = json.loads(dingbot_at_mobile)
+            sdk.log.info("dingbot_at_username_list is {}".format(dingbot_at_username_list))
+            sdk.log.info("dingbot_at_mobile_list is {}".format(dingbot_at_mobile_list))
+        dingbot_content = input_params.get("dingbot_content", None)
+        dingbot_content_tpl = Template(dingbot_content)
+        dingbot_content = dingbot_content_tpl.safe_substitute(kwargs_map)
+        sdk.log.info("dingbot_content is {}".format(dingbot_content))
+
+
+
+    # 消息发送逻辑
 
     headers = {"Content-Type": "application/json; charset=utf-8"}
-    api_url = bk_host + "/api/c/compapi/cmsi/send_msg/"
-    data_tpl = {
+    # 企业微信、钉钉采用send_msg接口发送
+    msg_url = bk_host + "/api/c/compapi/cmsi/send_msg/"
+    msg_tpl = {
             "bk_app_code": bk_app_code,
             "bk_app_secret": bk_app_secret,
             "bk_username": bk_username,
@@ -235,34 +301,27 @@ def main():
             "receiver__username": send_to,
             "title": title,
             "content": content,
-            "body_format": "Text"
         }
 
     
     sdk.log.info("send_by is {}".format(send_by))
     if "weixin" in send_by:
-        data_tpl["msg_type"] = "weixin"
-        data = json.dumps(data_tpl)
-        sdk.log.info("【weixin】 send data is {}".format(data))
-        resp = requests.post(
-            url=api_url,
-            headers=headers,
-            data=data
-        )
-        if resp.status_code != 200:
-            exit_with_error(error_type=sdk.output_error_type.THIRD_PARTY,
-                            error_code=err_code.THIRD_PARTY,
-                            error_msg=resp.text)
-        resp_json = resp.json()
-        
-        sdk.log.info("【weixin】 response data is {}".format(resp_json))
-        if resp_json["code"] != 0:
-            exit_with_error(error_type=sdk.output_error_type.USER,
-                            error_code=err_code.USER_CONFIG_ERROR,
-                            error_msg=resp_json["message"])
-
+        msg_tpl["msg_type"] = "weixin"
+        sdk.log.info("【weixin】 send data is {}".format(msg_tpl))
+        resp_json = get_response(url=msg_url, method="post", data=msg_tpl, desc="weixin")
+    
+    # 邮件发送逻辑，采用send_mail接口
     if "mail" in send_by:
-        data_tpl["msg_type"] = "mail"
+        mail_url = bk_host + "/api/c/compapi/cmsi/send_mail/"
+        mail_data_tpl = {
+                "bk_app_code": bk_app_code,
+                "bk_app_secret": bk_app_secret,
+                "bk_username": bk_username,
+                "receiver": mail_list,
+                "title": title,
+                "content": content,
+                "body_format": "Text"
+            }
         attachment_file = input_params.get("attachment", None)
         if attachment_file:
             sdk.log.info("attachment is {}".format(attachment_file))
@@ -280,29 +339,17 @@ def main():
                         "content": content_encoded
                     }
                     attachments.append(item)
-                data_tpl.update({"attachments": attachments})
+                mail_data_tpl.update({"attachments": attachments})
 
-        data = json.dumps(data_tpl)
-        resp = requests.post(
-            url=api_url,
-            headers=headers,
-            data=data
-        )
-        if resp.status_code != 200:
-            exit_with_error(
-                error_type=sdk.output_error_type.THIRD_PARTY,
-                error_code=err_code.THIRD_PARTY,
-                error_msg=resp.text
-            )
-        resp_json = resp.json()
-        sdk.log.info("【mail】 response data is {}".format(resp_json))
-        if resp_json["code"] != 0:
-            exit_with_error(
-                error_type=sdk.output_error_type.USER,
-                error_code=err_code.USER_CONFIG_ERROR,
-                error_msg=resp_json["message"]
-            )
-    if send_by_robot:
+        resp_json = get_response(url=mail_url, method="post", data=mail_data_tpl, desc="mail")
+ 
+    if "dingtalk" in send_by:
+        msg_tpl["msg_type"] = "ding"
+        resp_json = get_response(url=msg_url, method="post", data=msg_tpl, desc="dingtalk")
+
+
+    # 企业微信机器人发送逻辑
+    if send_by_webot:
         robot_webhook = sdk.get_sensitive_conf("robot_webhook")
         if robot_webhook is None:
             exit_with_error(
@@ -310,10 +357,10 @@ def main():
                 error_code=err_code.USER_CONFIG_ERROR,
                 error_msg="robot_webhook does not set"
             )
-        webhook_url = robot_webhook + "?key=" + robot_key
+        webhook_url = robot_webhook + "?key=" + webot_key
         sdk.log.info("webhook_url is {}".format(webhook_url))
 
-        artifact = input_params.get("artifact", None)
+        artifact = input_params.get("webot_artifact", None)
         if artifact:
             sdk.log.info("artifact is {}".format(artifact))
             file_path = os.path.join(sdk.get_workspace(), artifact)
@@ -322,7 +369,7 @@ def main():
                 sdk.log.error("{} does not exist in workspace!".format(artifact))
             else:
                 media_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media?key={KEY}&type=file".format(
-                    KEY=robot_key
+                    KEY=webot_key
                 )
                 files = {'file': (artifact, open(file_path, 'rb'), 'text/plain')}
                 r = requests.post(url=media_url, files=files)
@@ -346,26 +393,48 @@ def main():
             "msgtype": "text",
             "text": {
                 "content": "",
-                "mentioned_list": mentioned_list
+                "mentioned_list": webot_mentioned_list
             },
             "markdown": {
                 "content": ""
             }
         }
-        body["msgtype"] = msgtype
-        body[msgtype]["content"] = robot_content
-        sdk.log.info("【robot】 send data is is {}".format(body))
-        
-        resp = requests.post(url=webhook_url, headers=headers, data=json.dumps(body))
-        if resp.status_code != 200:
-            exit_with_error(
-                error_type=sdk.output_error_type.THIRD_PARTY,
-                error_code=err_code.THIRD_PARTY,
-                error_msg=resp.text
-            )
-        resp_json = resp.json()
-        sdk.log.info("【robot】 response data is {}".format(resp_json))
+        body["msgtype"] = webot_msgtype
+        body[webot_msgtype]["content"] = webot_content
+        sdk.log.info("【webot】 send data is is {}".format(body))
+        r = requests.post(webhook_url, headers=headers, data=json.dumps(body))
+        r_json = r.json()
+        if r.status_code != 200 or r_json["errcode"] != 0:
+            sdk.log.error("failed to send data, {}".format(r_json["errmsg"]))
+        sdk.log.info("success to send data")
+    
+    # 钉钉机器人发送逻辑
+    if send_by_dingbot:
+        dingbot_url = bk_host + "/api/c/compapi/cmsi/send_dingbot/"
+        dingbot_data_tpl = {
+                "bk_app_code": bk_app_code,
+                "bk_app_secret": bk_app_secret,
+                "bk_username": bk_username,
+                "msg_key": "text",
+                "receiver__username": dingbot_receiver,
+                "content": dingbot_content,
+            }
+        if dingbot_msgtype == "text":
+            dingbot_data_tpl.update({
+                "at_username": dingbot_at_username_list,
+                "at_mobile": dingbot_at_mobile_list
+            })
+
+        elif dingbot_msgtype=="markdown":
+            dingbot_data_tpl["msg_key"] = "markdown"
+            dingbot_title = input_params.get("dingbot_title")
+            title_tpl = Template(dingbot_title)
+            dingbot_title = title_tpl.safe_substitute(kwargs_map)
+            dingbot_data_tpl.update({"title": dingbot_title})
+
+        resp_json = get_response(url=dingbot_url, method="post", data=dingbot_data_tpl, desc="dingbot")
+
     # 插件执行结果、输出数据
-    if not send_by and not send_by_robot :
+    if not send_by and not send_by_webot and not send_by_dingbot:
         sdk.log.error("用户没有选择任何的发送方式")
     exit_with_succ()
